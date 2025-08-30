@@ -1,19 +1,13 @@
-(function(){
+(async function(){
   // --- Data ---------------------------------------------------------------
-  const CATALOG = [
-    { id: "drainage-rehab", name: "Urban Drainage Rehab", unit: "block", unitCost: 250000000, category: "Engineering", emoji: "🕳️", desc: "Rework clogged street drainage for a city block." },
-    { id: "pump-station", name: "Pumping Station", unit: "station", unitCost: 800000000, category: "Engineering", emoji: "💧", desc: "High-capacity pumps for low-lying districts." },
-    { id: "river-dredge", name: "River Dredging", unit: "km", unitCost: 120000000, category: "Engineering", emoji: "⚓", desc: "Deepen waterways to restore flow." },
-    { id: "levee", name: "Levee Construction", unit: "km", unitCost: 350000000, category: "Engineering", emoji: "🛡️", desc: "Raised embankments for flood barriers." },
-    { id: "retention-basin", name: "Retention Basin", unit: "hectare", unitCost: 90000000, category: "Engineering", emoji: "🏞️", desc: "Temporary water storage to delay surges." },
-    { id: "culvert", name: "Culvert Upgrade", unit: "site", unitCost: 12000000, category: "Maintenance", emoji: "🏗️", desc: "Replace undersized culverts at choke points." },
-    { id: "debris-booms", name: "Debris Booms", unit: "set", unitCost: 5000000, category: "Maintenance", emoji: "🪵", desc: "Floating barriers to catch trash and logs." },
-    { id: "sensor-network", name: "Rain & River Sensors", unit: "node", unitCost: 1500000, category: "Monitoring", emoji: "📡", desc: "IoT sensors for early warnings." },
-    { id: "sirens", name: "Community Sirens", unit: "siren", unitCost: 900000, category: "Preparedness", emoji: "🚨", desc: "Outdoor sirens for alerts." },
-    { id: "evac-centers", name: "Evacuation Center Upgrade", unit: "center", unitCost: 35000000, category: "Preparedness", emoji: "🏫", desc: "Dry floors, power, and water." },
-    { id: "mangrove", name: "Mangrove Rehabilitation", unit: "hectare", unitCost: 800000, category: "Nature-based", emoji: "🌿", desc: "Coastal buffers that slow storm surge." },
-    { id: "floodplain-zoning", name: "Floodplain Zoning Plan", unit: "city", unitCost: 7000000, category: "Planning", emoji: "🗺️", desc: "Map risks, steer growth away from danger." },
-  ];
+  let CATALOG = [];
+  try {
+    const response = await fetch('catalog.json');
+    CATALOG = await response.json();
+  } catch (e) {
+    console.error('Failed to load catalog:', e);
+    return;
+  }
 
   const DEFAULT_BUDGET = 300_000_000_000; // ₱300B
   const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 });
@@ -21,7 +15,7 @@
   // --- State --------------------------------------------------------------
   const state = {
     budget: DEFAULT_BUDGET,
-    qty: Object.fromEntries(CATALOG.map(i => [i.id, 0])),
+    qty: Object.fromEntries(CATALOG.map(i => [i.id, 0])), // Default quantity set to 0 for all items
     filter: { q: "", cat: "All" }
   };
 
