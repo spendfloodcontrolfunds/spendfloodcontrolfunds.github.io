@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spend Fund Control Funds</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --muted:#7f8aad; --text:#e9eeff; --accent:#7cc5ff; --ok:#39d98a; --warn:#ffb020; --danger:#ff6b6b;
+      --ring:#2a3a6a; --chip:#192349; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:radial-gradient(1200px 700px at 10% -10%,#18224a,transparent),linear-gradient(180deg,#0a0f20,#0b1020 40%);color:var(--text);font:16px/1.4 system-ui,Segoe UI,Roboto,Arial}
+    a{color:var(--accent)}
+    .container{max-width:1200px;margin:auto;padding:20px}
+    header{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+    h1{font-size:clamp(22px,4vw,36px);margin:0}
+    .subtitle{color:var(--muted);font-size:14px}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .chip{background:var(--chip);border:1px solid var(--ring);padding:8px 10px;border-radius:999px;display:inline-flex;gap:8px;align-items:center}
+    .chip input{background:transparent;border:none;color:var(--text);width:140px;outline:none}
+    .btn{background:#1a2550;border:1px solid var(--ring);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;box-shadow:var(--shadow)}
+    .btn:hover{filter:brightness(1.1)}
+    .btn.ghost{background:transparent}
+
+    .layout{display:grid;grid-template-columns: 1fr 360px; gap:20px;margin-top:18px}
+    @media (max-width: 980px){.layout{grid-template-columns:1fr}}
+
+    .card{background:var(--card);border:1px solid var(--ring);border-radius:18px;box-shadow:var(--shadow)}
+    .catalog{padding:14px}
+    .catalog-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .catalog-toolbar input{flex:1;min-width:180px;background:#0f1630;border:1px solid var(--ring);color:var(--text);padding:10px 12px;border-radius:12px}
+    .category{display:flex;gap:6px;flex-wrap:wrap}
+    .category button{background:#0f1735;border:1px solid var(--ring);color:var(--muted);padding:6px 10px;border-radius:999px;cursor:pointer}
+    .category button.active{color:var(--text);background:#1d2b63}
+
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media(max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:700px){.grid{grid-template-columns:1fr}}
+
+    .item{display:grid;grid-template-rows:auto auto 1fr auto;gap:6px;padding:12px}
+    .item .title{display:flex;gap:8px;align-items:baseline}
+    .item .emoji{font-size:22px}
+    .item .desc{color:var(--muted);font-size:13px;min-height:34px}
+    .price{font-weight:700}
+    .qty{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:6px}
+    .stepper{display:flex;gap:8px;align-items:center}
+    .stepper button{width:36px;height:36px;border-radius:12px;border:1px solid var(--ring);background:#0f1735;color:var(--text);font-size:18px;cursor:pointer}
+    .stepper input{width:62px;border-radius:10px;border:1px solid var(--ring);background:#0f1735;color:var(--text);padding:8px;text-align:center}
+
+    .sidebar{padding:14px;position:sticky;top:14px}
+    .totals{display:grid;gap:6px;margin-bottom:12px}
+    .meter{height:10px;background:#0f1630;border:1px solid var(--ring);border-radius:999px;overflow:hidden}
+    .meter>i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#41b3ff);width:0%}
+    .line{display:flex;justify-content:space-between}
+    .muted{color:var(--muted)}
+    .receipt{max-height:52vh;overflow:auto;border-top:1px dashed #2a3a6a;margin-top:10px;padding-top:10px}
+    .receipt .row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:6px 0}
+    .pill{font-size:12px;background:#0f1735;border:1px solid var(--ring);padding:4px 8px;border-radius:999px}
+    .small{font-size:12px}
+    .danger{color:var(--danger)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Spend Fund Control Funds</h1>
+        <!-- <div class="subtitle">Build your flood-control program and watch the funds disappear.</div> -->
+      </div>
+      <div class="controls">
+        <div class="chip" title="Set starting budget">
+          <span>Budget</span>
+          <input id="budgetInput" type="text" inputmode="numeric" aria-label="Budget in PHP" />
+        </div>
+        <button id="resetBtn" class="btn ghost" title="Reset quantities">Reset</button>
+        <button id="shareBtn" class="btn" title="Share current plan via URL">Share</button>
+        <button id="downloadBtn" class="btn" title="Download receipt text file">Download</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="catalog card">
+        <div class="catalog-toolbar">
+          <input id="search" placeholder="Search items (e.g., pump, levee, drainage)" />
+          <div class="category" id="catFilter"></div>
+        </div>
+        <div class="grid" id="grid"></div>
+      </section>
+
+      <aside class="sidebar card">
+        <div class="totals">
+          <div class="line"><strong>Remaining</strong><strong id="remaining">—</strong></div>
+          <div class="meter"><i id="meter"></i></div>
+          <div class="line"><span class="muted">Spent</span><span id="spent">—</span></div>
+          <div class="line"><span class="muted">Items</span><span id="items">0</span></div>
+        </div>
+        <div class="receipt" id="receipt"></div>
+      </aside>
+    </div>
+
+    <!-- <footer class="small muted" style="margin-top:20px">
+      Too risky to share.
+    </footer> -->
+  </div>
+
+<script>
+(function(){
+  // --- Data ---------------------------------------------------------------
+  const CATALOG = [
+    { id: "drainage-rehab", name: "Urban Drainage Rehab", unit: "block", unitCost: 250000000, category: "Engineering", emoji: "🕳️", desc: "Rework clogged street drainage for a city block." },
+    { id: "pump-station", name: "Pumping Station", unit: "station", unitCost: 800000000, category: "Engineering", emoji: "💧", desc: "High-capacity pumps for low-lying districts." },
+    { id: "river-dredge", name: "River Dredging", unit: "km", unitCost: 120000000, category: "Engineering", emoji: "⚓", desc: "Deepen waterways to restore flow." },
+    { id: "levee", name: "Levee Construction", unit: "km", unitCost: 350000000, category: "Engineering", emoji: "🛡️", desc: "Raised embankments for flood barriers." },
+    { id: "retention-basin", name: "Retention Basin", unit: "hectare", unitCost: 90000000, category: "Engineering", emoji: "🏞️", desc: "Temporary water storage to delay surges." },
+    { id: "culvert", name: "Culvert Upgrade", unit: "site", unitCost: 12000000, category: "Maintenance", emoji: "🏗️", desc: "Replace undersized culverts at choke points." },
+    { id: "debris-booms", name: "Debris Booms", unit: "set", unitCost: 5000000, category: "Maintenance", emoji: "🪵", desc: "Floating barriers to catch trash and logs." },
+    { id: "sensor-network", name: "Rain & River Sensors", unit: "node", unitCost: 1500000, category: "Monitoring", emoji: "📡", desc: "IoT sensors for early warnings." },
+    { id: "sirens", name: "Community Sirens", unit: "siren", unitCost: 900000, category: "Preparedness", emoji: "🚨", desc: "Outdoor sirens for alerts." },
+    { id: "evac-centers", name: "Evacuation Center Upgrade", unit: "center", unitCost: 35000000, category: "Preparedness", emoji: "🏫", desc: "Dry floors, power, and water." },
+    { id: "mangrove", name: "Mangrove Rehabilitation", unit: "hectare", unitCost: 800000, category: "Nature-based", emoji: "🌿", desc: "Coastal buffers that slow storm surge." },
+    { id: "floodplain-zoning", name: "Floodplain Zoning Plan", unit: "city", unitCost: 7000000, category: "Planning", emoji: "🗺️", desc: "Map risks, steer growth away from danger." },
+  ];
+
+  const DEFAULT_BUDGET = 300_000_000_000; // ₱300B
+  const peso = new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP',maximumFractionDigits:0});
+
+  // --- State --------------------------------------------------------------
+  const state = {
+    budget: DEFAULT_BUDGET,
+    qty: Object.fromEntries(CATALOG.map(i=>[i.id,0])),
+    filter: { q:"", cat:"All" }
+  };
+
+  // restore from URL or localStorage
+  (function restore(){
+    const url = new URL(location.href);
+    const q = url.searchParams.get('q');
+    const b = url.searchParams.get('b');
+    if(q){
+      q.split(',').forEach(pair=>{
+        const [id,qty] = pair.split(':');
+        if(state.qty.hasOwnProperty(id)) state.qty[id] = Math.max(0, parseInt(qty||'0',10)||0);
+      });
+    } else {
+      try{
+        const saved = JSON.parse(localStorage.getItem('sfcf_state')||'null');
+        if(saved){ Object.assign(state, saved); }
+      }catch(e){/* ignore */}
+    }
+    if(b){ state.budget = Math.max(0, parseInt(b,10)||DEFAULT_BUDGET); }
+  })();
+
+  // --- DOM refs -----------------------------------------------------------
+  const el = (q)=>document.querySelector(q);
+  const grid = el('#grid');
+  const receipt = el('#receipt');
+  const remaining = el('#remaining');
+  const spent = el('#spent');
+  const items = el('#items');
+  const meter = el('#meter');
+  const budgetInput = el('#budgetInput');
+  const search = el('#search');
+  const catFilter = el('#catFilter');
+
+  // --- UI builders --------------------------------------------------------
+  function buildFilters(){
+    const cats = ['All', ...[...new Set(CATALOG.map(i=>i.category))]];
+    catFilter.innerHTML = '';
+    cats.forEach(c=>{
+      const b = document.createElement('button');
+      b.textContent = c; b.className = c===state.filter.cat ? 'active':'';
+      b.addEventListener('click', ()=>{ state.filter.cat=c; buildFilters(); render(); });
+      catFilter.appendChild(b);
+    });
+  }
+
+  function buildCatalog(){
+    const q = state.filter.q.toLowerCase();
+    const cat = state.filter.cat;
+    const list = CATALOG.filter(i=>
+      (cat==='All' || i.category===cat) &&
+      (i.name.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q) || i.category.toLowerCase().includes(q))
+    );
+
+    grid.innerHTML = '';
+    list.forEach(i=>{
+      const card = document.createElement('div');
+      card.className = 'item card';
+      card.innerHTML = `
+        <div class="title"><span class="emoji">${i.emoji}</span><strong>${i.name}</strong></div>
+        <div class="desc">${i.desc}</div>
+        <div class="price">${peso.format(i.unitCost)} / ${i.unit}</div>
+        <div class="qty">
+          <span class="muted">Qty</span>
+          <div class="stepper">
+            <button aria-label="decrease">−</button>
+            <input type="number" min="0" step="1" value="${state.qty[i.id]}"/>
+            <button aria-label="increase">+</button>
+          </div>
+        </div>`;
+      const [minus, input, plus] = card.querySelectorAll('.stepper > *');
+      minus.addEventListener('click', ()=> setQty(i.id, state.qty[i.id]-1));
+      plus.addEventListener('click', ()=> setQty(i.id, state.qty[i.id]+1));
+      input.addEventListener('input', ()=> setQty(i.id, parseInt(input.value||'0',10)||0));
+      grid.appendChild(card);
+    });
+  }
+
+  function buildReceipt(){
+    receipt.innerHTML = '';
+    const entries = CATALOG.map(i=>({item:i, qty: state.qty[i.id]})).filter(x=>x.qty>0);
+    if(entries.length===0){
+      const p = document.createElement('div');
+      p.className='muted';
+      p.textContent = 'No items yet. Add something from the left!';
+      receipt.appendChild(p);
+      return;
+    }
+    entries.forEach(({item,qty})=>{
+      const row = document.createElement('div');
+      row.className = 'row';
+      const subtotal = qty*item.unitCost;
+      row.innerHTML = `
+        <div>
+          <div><strong>${item.name}</strong></div>
+          <div class="small muted">${qty} × ${peso.format(item.unitCost)} / ${item.unit}</div>
+        </div>
+        <div class="pill">${item.category}</div>
+        <div><strong>${peso.format(subtotal)}</strong></div>`;
+      receipt.appendChild(row);
+    });
+  }
+
+  // --- Logic -------------------------------------------------------------
+  function setQty(id, val){
+    state.qty[id] = Math.max(0, Math.floor(val||0));
+    render();
+  }
+
+  function compute(){
+    const totals = CATALOG.reduce((acc,i)=>{
+      const q = state.qty[i.id]||0; acc.items += q; acc.spent += q*i.unitCost; return acc;
+    }, {items:0, spent:0});
+    totals.remaining = Math.max(0, state.budget - totals.spent);
+    totals.usedPct = Math.min(100, (totals.spent/state.budget)*100 || 0);
+    totals.over = Math.max(0, totals.spent - state.budget);
+    return totals;
+  }
+
+  function renderTotals(){
+    const {spent:sp, remaining:rem, items:it, usedPct, over} = compute();
+    remaining.textContent = peso.format(rem) + (over? `  (over by ${peso.format(over)})` : '');
+    spent.textContent = peso.format(sp);
+    items.textContent = it;
+    meter.style.width = usedPct + '%';
+    remaining.classList.toggle('danger', over>0);
+  }
+
+  function render(){
+    save();
+    buildCatalog();
+    buildReceipt();
+    renderTotals();
+  }
+
+  function save(){
+    localStorage.setItem('sfcf_state', JSON.stringify(state));
+  }
+
+  function setBudgetFromInput(){
+    const raw = budgetInput.value.replace(/[^0-9]/g,'');
+    const val = parseInt(raw||'0',10) || 0;
+    state.budget = Math.max(0,val);
+    budgetInput.value = peso.format(state.budget);
+    render();
+  }
+
+  function initBudgetInput(){
+    budgetInput.value = peso.format(state.budget);
+    budgetInput.addEventListener('blur', setBudgetFromInput);
+    budgetInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.currentTarget.blur(); }});
+  }
+
+  function initSearch(){
+    search.addEventListener('input', ()=>{ state.filter.q = search.value; render(); });
+  }
+
+  function share(){
+    const parts = Object.entries(state.qty).filter(([,q])=>q>0).map(([id,q])=>`${id}:${q}`);
+    const url = new URL(location.href);
+    url.searchParams.set('q', parts.join(','));
+    url.searchParams.set('b', String(state.budget));
+    navigator.clipboard?.writeText(url.toString());
+    alert('Sharable URL copied to clipboard!');
+  }
+
+  function download(){
+    const {spent, remaining, items} = compute();
+    const lines = [];
+    lines.push('spendfloodcontrolfunds — Receipt');
+    lines.push('');
+    CATALOG.forEach(i=>{
+      const q = state.qty[i.id]||0; if(!q) return;
+      lines.push(`${i.name} — ${q} × ${peso.format(i.unitCost)} / ${i.unit} = ${peso.format(q*i.unitCost)}`);
+    });
+    lines.push('');
+    lines.push(`TOTAL ITEMS: ${items}`);
+    lines.push(`TOTAL SPENT: ${peso.format(spent)}`);
+    lines.push(`REMAINING: ${peso.format(remaining)}`);
+    lines.push(`BUDGET: ${peso.format(state.budget)}`);
+    const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'spendfloodcontrolfunds-receipt.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // --- Wire up -----------------------------------------------------------
+  buildFilters();
+  initBudgetInput();
+  initSearch();
+  render();
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    Object.keys(state.qty).forEach(k=> state.qty[k]=0);
+    state.filter.q=''; search.value=''; state.filter.cat='All'; buildFilters();
+    state.budget = DEFAULT_BUDGET; budgetInput.value = peso.format(state.budget);
+    render();
+  });
+  document.getElementById('shareBtn').addEventListener('click', share);
+  document.getElementById('downloadBtn').addEventListener('click', download);
+})();
+</script>
+</body>
+</html>
